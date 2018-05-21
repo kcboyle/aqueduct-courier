@@ -26,14 +26,20 @@ const (
 	ReadMetadataFileError         = "Unable to read metadata file"
 	ReadDataFileError             = "Unable to read data file "
 	InvalidMetadataFileError      = "Metadata file is invalid"
+
+	ExtraFilesInTarMessageFormat   = "Tar file %s contains unexpected extra files"
+	MissingFilesInTarMessageFormat = "Tar file %s is missing contents"
+	InvalidFilesInTarMessageFormat = "Tar file %s data file content does not match recorded value"
+	UnableToListFilesMessageFormat = "Unable to list files in %s"
 )
 
 type SendExecutor struct{}
 
 //go:generate counterfeiter . tarReader
 type tarReader interface {
-	ReadFile(string) ([]byte, error)
 	TarFilePath() string
+	ReadFile(string) ([]byte, error)
+	FileMd5s() (map[string]string, error)
 }
 
 func (s SendExecutor) Send(reader tarReader, dataLoaderURL, apiToken string) error {
@@ -46,6 +52,10 @@ func (s SendExecutor) Send(reader tarReader, dataLoaderURL, apiToken string) err
 	err = json.Unmarshal(metadataContent, &metadata)
 	if err != nil {
 		return errors.Wrap(err, InvalidMetadataFileError)
+	}
+
+	if err := validateTarFile(reader, metadata); err != nil {
+		return err
 	}
 
 	req, err := makeFileUploadRequest(
@@ -132,4 +142,36 @@ func makeFileUploadRequest(filePath, apiToken, uploadURL string, metadata Metada
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	return req, nil
+}
+
+func validateTarFile(reader tarReader, metadata Metadata) error {
+	fileMd5s, err := reader.FileMd5s()
+	if err != nil {
+		return errors.Wrapf(err, UnableToListFilesMessageFormat, reader.TarFilePath())
+	}
+
+	//test ignoring metadata??
+	delete(fileMd5s, MetadataFileName)
+
+	for _, digest := range metadata.FileDigests {
+		var found bool
+		for fileName, checksum := range fileMd5s {
+			if digest.Name == fileName {
+				if digest.MD5Checksum != checksum {
+					return errors.Errorf(InvalidFilesInTarMessageFormat, reader.TarFilePath())
+				}
+				delete(fileMd5s, fileName)
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.Errorf(MissingFilesInTarMessageFormat, reader.TarFilePath())
+		}
+	}
+	if len(fileMd5s) != 0 {
+		return errors.Errorf(ExtraFilesInTarMessageFormat, reader.TarFilePath())
+	}
+
+	return nil
 }
