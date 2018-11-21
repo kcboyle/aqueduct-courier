@@ -124,7 +124,12 @@ func collect(c *cobra.Command, _ []string) error {
 		Requestor: apiService,
 	}
 
-	collector := opsmanager.NewDataCollector(
+	//credhubCollector := credhub.NewDataCollector(
+	//	omService,
+	//	??
+	//	)
+
+	omCollector := opsmanager.NewDataCollector(
 		omService,
 		apiService,
 		apiService,
@@ -139,7 +144,7 @@ func collect(c *cobra.Command, _ []string) error {
 		return err
 	}
 
-	ce := ops.NewCollector(collector, tarWriter)
+	ce := ops.NewCollector(omCollector, tarWriter) //add credhubCollector to constructor
 
 	fmt.Printf("Collecting data from Operations Manager at %s\n", viper.GetString(OpsManagerURLFlag))
 	err = ce.Collect(envType, version)
