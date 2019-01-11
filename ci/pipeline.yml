@@ -8,6 +8,11 @@ resource_types:
     source:
       repository: pivotalcf/pivnet-resource
       tag: latest-final
+  - name: slack-notification
+    type: docker-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+      tag: latest
 
 resources:
 - name: pivotal-telemetry-collector
@@ -64,6 +69,10 @@ resources:
   source:
     repository: ubuntu
     tag: xenial
+- name: prod-slack-notification
+  type: slack-notification
+  source:
+    url: {{slack-webhook-url}}
 
 jobs:
 - name: courier-tests
@@ -276,3 +285,23 @@ jobs:
     params: {bump: patch, pre: build}
   - put: version
     params: {file: version/version}
+
+- name: ensure-production-sends
+  plan:
+  - get: pivotal-telemetry-collector
+    params:
+      globs: ["telemetry-collector-linux-amd64*"]
+  - get: aqueduct-courier
+  - task: strip-collector-version
+    file: aqueduct-courier/ci/tasks/strip-collector-version.yml
+    input_mapping:
+      binary: pivotal-telemetry-collector
+  - task: collect
+    file: aqueduct-courier/ci/tasks/collect.yml
+  - task: send
+    file: aqueduct-courier/ci/tasks/send.yml
+    on_failure:
+      put: prod-slack-notification
+      params:
+        text: |
+          Failed to send OpsManager dataset to production. Build: https://wings.pivotal.io/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME
