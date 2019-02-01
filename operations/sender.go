@@ -54,27 +54,38 @@ type validator interface {
 }
 
 func (s SendExecutor) Send(client httpClient, reader tarReader, tValidator validator, tarFilePath, dataLoaderURL, apiToken, senderVersion string) error {
-	metadataContent, err := reader.ReadFile(data.MetadataFileName)
-	if err != nil {
-		return errors.Wrap(err, ReadMetadataFileError)
-	}
 
-	var metadata data.Metadata
-	err = json.Unmarshal(metadataContent, &metadata)
-	if err != nil {
-		return errors.Wrap(err, InvalidMetadataFileError)
-	}
+	// metadata file no longer top level
+	// traverse inside opsmanager and consumption dirs to find metadata files
+	// does Send even need to look at metadata files anymore?
 
-	if err := tValidator.Validate(); err != nil {
-		return errors.Wrapf(err, FileValidationFailedMessageFormat, tarFilePath)
-	}
+	//metadataContent, err := reader.ReadFile(data.MetadataFileName)
+	//if err != nil {
+	//	return errors.Wrap(err, ReadMetadataFileError)
+	//}
+	//
+	//var metadata data.Metadata
+	//err = json.Unmarshal(metadataContent, &metadata)
+	//if err != nil {
+	//	return errors.Wrap(err, InvalidMetadataFileError)
+	//}
 
+	//if err := tValidator.Validate(); err != nil {
+	//	return errors.Wrapf(err, FileValidationFailedMessageFormat, tarFilePath)
+	//}
+
+	//req, err := makeFileUploadRequest(
+	//	tarFilePath,
+	//	apiToken,
+	//	dataLoaderURL+PostPath,
+	//	senderVersion,
+	//	metadata,
+	//)
 	req, err := makeFileUploadRequest(
 		tarFilePath,
 		apiToken,
 		dataLoaderURL+PostPath,
 		senderVersion,
-		metadata,
 	)
 	if err != nil {
 		return errors.Wrap(err, RequestCreationFailureMessage)
@@ -124,7 +135,7 @@ func constructFileMetadataReader(metadata data.Metadata, fileName, senderVersion
 	return bytes.NewReader(metadataJson), nil
 }
 
-func makeFileUploadRequest(filePath, apiToken, uploadURL, senderVersion string, metadata data.Metadata) (*http.Request, error) {
+func makeFileUploadRequest(filePath, apiToken, uploadURL, senderVersion string) (*http.Request, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -144,24 +155,24 @@ func makeFileUploadRequest(filePath, apiToken, uploadURL, senderVersion string, 
 		return nil, err
 	}
 
-	metadataReader, err := constructFileMetadataReader(metadata, filepath.Base(filePath), senderVersion, hashWriter)
-	if err != nil {
-		return nil, err
-	}
-
-	metadataPart, err := writer.CreateFormField("metadata")
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = io.Copy(metadataPart, metadataReader)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := writer.Close(); err != nil {
-		return nil, err
-	}
+	//metadataReader, err := constructFileMetadataReader(metadata, filepath.Base(filePath), senderVersion, hashWriter)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//metadataPart, err := writer.CreateFormField("metadata")
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//_, err = io.Copy(metadataPart, metadataReader)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//if err := writer.Close(); err != nil {
+	//	return nil, err
+	//}
 
 	req, err := http.NewRequest(http.MethodPost, uploadURL, body)
 	if err != nil {

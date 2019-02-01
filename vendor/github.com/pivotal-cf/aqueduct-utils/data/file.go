@@ -20,6 +20,7 @@ const (
 	PropertiesDataType             = "properties"
 	CertificatesDataType           = "certificates"
 	CertificateAuthoritiesDataType = "certificate_authorities"
+	AppUsagesDataType	 = "app_usages"
 
 	MetadataFileName = "metadata"
 

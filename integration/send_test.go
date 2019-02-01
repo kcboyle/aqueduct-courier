@@ -24,7 +24,7 @@ import (
 	"github.com/pivotal-cf/aqueduct-utils/file"
 )
 
-var _ = Describe("Send", func() {
+var _ = FDescribe("Send", func() {
 	var (
 		binaryPath            string
 		dataLoader            *ghttp.Server
@@ -57,12 +57,13 @@ var _ = Describe("Send", func() {
 
 	Context("success", func() {
 		BeforeEach(func() {
+			//need new route to send data to
 			dataLoader.RouteToHandler(http.MethodPost, operations.PostPath, ghttp.CombineHandlers(
 				ghttp.VerifyHeader(http.Header{
 					"Authorization": []string{fmt.Sprintf("Token %s", validApiKey)},
 				}),
 				ghttp.RespondWith(http.StatusCreated, ""),
-				verifyVersion(),
+				//verifyVersion(),
 			))
 		})
 
@@ -117,19 +118,25 @@ func generateValidDataTarFile(destinationDir string) string {
 	Expect(err).NotTo(HaveOccurred())
 	defer writer.Close()
 
-	Expect(writer.AddFile([]byte{}, "file1")).To(Succeed())
-	Expect(writer.AddFile([]byte{}, "file2")).To(Succeed())
+	Expect(writer.AddFile([]byte{}, filepath.Join("some-data-set-name1", "file1"))).To(Succeed())
+	Expect(writer.AddFile([]byte{}, filepath.Join("some-data-set-name2", "file1"))).To(Succeed())
 	sum := md5.Sum([]byte{})
 	emptyFileChecksum := base64.StdEncoding.EncodeToString(sum[:])
 
 	var metadata data.Metadata
 	metadata.FileDigests = []data.FileDigest{
 		{Name: "file1", MD5Checksum: emptyFileChecksum},
-		{Name: "file2", MD5Checksum: emptyFileChecksum},
 	}
 	metadataContents, err := json.Marshal(metadata)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(writer.AddFile(metadataContents, data.MetadataFileName)).To(Succeed())
+	Expect(writer.AddFile(metadataContents, filepath.Join("some-data-set-name1", data.MetadataFileName))).To(Succeed())
+
+	metadata.FileDigests = []data.FileDigest{
+		{Name: "file2", MD5Checksum: emptyFileChecksum},
+	}
+	metadataContents, err = json.Marshal(metadata)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(writer.AddFile(metadataContents, filepath.Join("some-data-set-name1", data.MetadataFileName))).To(Succeed())
 
 	return tarFilePath
 }
