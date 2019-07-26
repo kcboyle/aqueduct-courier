@@ -37,6 +37,7 @@ const (
 	OpsManagerClientIdKey        = "OPS_MANAGER_CLIENT_ID"
 	OpsManagerClientSecretKey    = "OPS_MANAGER_CLIENT_SECRET"
 	OpsManagerTimeoutKey         = "OPS_MANAGER_TIMEOUT"
+	RequestTimeoutKey            = "REQUEST_TIMEOUT"
 	EnvTypeKey                   = "ENV_TYPE"
 	OutputPathKey                = "OUTPUT_DIR"
 	SkipTlsVerifyKey             = "INSECURE_SKIP_TLS_VERIFY"
@@ -53,6 +54,7 @@ const (
 	OpsManagerClientIdFlag        = "client-id"
 	OpsManagerClientSecretFlag    = "client-secret"
 	OpsManagerTimeoutFlag         = "ops-manager-timeout"
+	RequestTimeoutFlag            = "request-timeout"
 	CollectFromCredhubFlag        = "with-credhub-info"
 	EnvTypeFlag                   = "env-type"
 	OutputPathFlag                = "output-dir"
@@ -94,6 +96,7 @@ func init() {
 	bindFlagAndEnvVar(collectCmd, OpsManagerClientSecretFlag, "", fmt.Sprintf("``Ops Manager client secret [$%s]", OpsManagerClientSecretKey), OpsManagerClientSecretKey)
 	bindFlagAndEnvVar(collectCmd, EnvTypeFlag, "", fmt.Sprintf("``Specify environment type (sandbox, development, qa, pre-production, production) [$%s]", EnvTypeKey), EnvTypeKey)
 	bindFlagAndEnvVar(collectCmd, OpsManagerTimeoutFlag, 30, fmt.Sprintf("``Ops Manager http request timeout in seconds [$%s]", OpsManagerTimeoutKey), OpsManagerTimeoutKey)
+	bindFlagAndEnvVar(collectCmd, RequestTimeoutFlag, 30, fmt.Sprintf("``http request timeout in seconds [$%s]", RequestTimeoutKey), RequestTimeoutKey)
 	bindFlagAndEnvVar(collectCmd, SkipTlsVerifyFlag, false, fmt.Sprintf("``Skip TLS validation on http requests to Ops Manager [$%s]\n", SkipTlsVerifyKey), SkipTlsVerifyKey)
 
 	bindFlagAndEnvVar(collectCmd, CfApiURLFlag, "", fmt.Sprintf("``CF API URL for UAA authentication to access Usage Service [$%s]", CfApiURLKey), CfApiURLKey)
@@ -248,7 +251,7 @@ func makeConsumptionCollector() (consumptionDataCollector, error) {
 			uaaURL,
 			viper.GetString(UsageServiceClientIDFlag),
 			viper.GetString(UsageServiceClientSecretFlag),
-			30*time.Second,
+			time.Duration(viper.GetInt(RequestTimeoutFlag))*time.Second,
 			client,
 		)
 

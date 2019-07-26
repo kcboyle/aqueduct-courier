@@ -9,6 +9,7 @@ import (
 
 func NewClient(skipTLSVerification bool) *http.Client {
 	return &http.Client{
+		Timeout: 1 * time.Second,
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{

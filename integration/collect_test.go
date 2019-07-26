@@ -248,6 +248,47 @@ var _ = Describe("Collect", func() {
 			uaaService.Close()
 		})
 
+		Context("specifying request timeout", func() {
+			var slowServer *ghttp.Server
+			BeforeEach(func() {
+				slowServer = ghttp.NewServer()
+				slowServer.AppendHandlers(
+					func(w http.ResponseWriter, req *http.Request) {
+						w.Header().Set("Content-Type", "application/json")
+
+						w.Write([]byte(`{
+					"access_token": "some-opsman-token",
+					"token_type": "bearer",
+					"expires_in": 3600
+					}`))
+					},
+					func(w http.ResponseWriter, req *http.Request) {
+						time.Sleep(3 * time.Second)
+					},
+				)
+			})
+
+			AfterEach(func() {
+				slowServer.Close()
+			})
+
+			It("uses the timeout specified with env variable", func() {
+				defaultEnvVars[cmd.CfApiURLKey] = cfService.URL()
+				defaultEnvVars[cmd.UsageServiceClientIDKey] = "best-usage-service-client-id"
+				defaultEnvVars[cmd.UsageServiceClientSecretKey] = "best-usage-service-client-secret"
+				defaultEnvVars[cmd.UsageServiceSkipTlsVerifyKey] = "true"
+				defaultEnvVars[cmd.UsageServiceURLKey] = slowServer.URL()
+				defaultEnvVars[cmd.RequestTimeoutKey] = "1"
+				command := buildDefaultCommand(defaultEnvVars)
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(session).Should(gexec.Exit(1))
+				Eventually(session.Err).Should(gbytes.Say("Timeout exceeded"))
+				Expect(session.Err).NotTo(gbytes.Say("USAGE EXAMPLES"))
+				assertOutputDirEmpty(outputDirPath)
+			})
+		})
+
 		It("succeeds with env variable configuration", func() {
 			defaultEnvVars[cmd.CfApiURLKey] = cfService.URL()
 			defaultEnvVars[cmd.UsageServiceURLKey] = usageService.URL()
