@@ -37,6 +37,7 @@ const (
 	OpsManagerClientIdKey        = "OPS_MANAGER_CLIENT_ID"
 	OpsManagerClientSecretKey    = "OPS_MANAGER_CLIENT_SECRET"
 	OpsManagerTimeoutKey         = "OPS_MANAGER_TIMEOUT"
+	DialTimeoutKey               = "DIAL_TIMEOUT"
 	EnvTypeKey                   = "ENV_TYPE"
 	OutputPathKey                = "OUTPUT_DIR"
 	SkipTlsVerifyKey             = "INSECURE_SKIP_TLS_VERIFY"
@@ -53,6 +54,7 @@ const (
 	OpsManagerClientIdFlag        = "client-id"
 	OpsManagerClientSecretFlag    = "client-secret"
 	OpsManagerTimeoutFlag         = "ops-manager-timeout"
+	DialTimeoutFlag               = "dial-timeout"
 	CollectFromCredhubFlag        = "with-credhub-info"
 	EnvTypeFlag                   = "env-type"
 	OutputPathFlag                = "output-dir"
@@ -94,6 +96,7 @@ func init() {
 	bindFlagAndEnvVar(collectCmd, OpsManagerClientSecretFlag, "", fmt.Sprintf("``Ops Manager client secret [$%s]", OpsManagerClientSecretKey), OpsManagerClientSecretKey)
 	bindFlagAndEnvVar(collectCmd, EnvTypeFlag, "", fmt.Sprintf("``Specify environment type (sandbox, development, qa, pre-production, production) [$%s]", EnvTypeKey), EnvTypeKey)
 	bindFlagAndEnvVar(collectCmd, OpsManagerTimeoutFlag, 30, fmt.Sprintf("``Ops Manager http request timeout in seconds [$%s]", OpsManagerTimeoutKey), OpsManagerTimeoutKey)
+	bindFlagAndEnvVar(collectCmd, DialTimeoutFlag, 5, fmt.Sprintf("``tcp dial timeout in seconds [$%s]", DialTimeoutKey), DialTimeoutKey)
 	bindFlagAndEnvVar(collectCmd, SkipTlsVerifyFlag, false, fmt.Sprintf("``Skip TLS validation on http requests to Ops Manager [$%s]\n", SkipTlsVerifyKey), SkipTlsVerifyKey)
 
 	bindFlagAndEnvVar(collectCmd, CfApiURLFlag, "", fmt.Sprintf("``CF API URL for UAA authentication to access Usage Service [$%s]", CfApiURLKey), CfApiURLKey)
@@ -231,7 +234,7 @@ func makeConsumptionCollector() (consumptionDataCollector, error) {
 			return nil, err
 		}
 
-		client := network.NewClient(viper.GetBool(UsageServiceSkipTlsVerifyFlag))
+		client := network.NewClient(viper.GetBool(UsageServiceSkipTlsVerifyFlag), viper.GetDuration(DialTimeoutFlag)*time.Second)
 		cfApiClient := cf.NewClient(viper.GetString(CfApiURLFlag), client)
 
 		usageURL, err := url.Parse(viper.GetString(UsageServiceURLFlag))
@@ -248,7 +251,6 @@ func makeConsumptionCollector() (consumptionDataCollector, error) {
 			uaaURL,
 			viper.GetString(UsageServiceClientIDFlag),
 			viper.GetString(UsageServiceClientSecretFlag),
-			30*time.Second,
 			client,
 		)
 
@@ -304,7 +306,7 @@ func makeCollector(tarWriter *file.TarWriter) (*operations.CollectExecutor, erro
 		viper.GetBool(SkipTlsVerifyFlag),
 		false,
 		time.Duration(viper.GetInt(OpsManagerTimeoutFlag))*time.Second,
-		5*time.Second,
+		viper.GetDuration(DialTimeoutFlag) * time.Second,
 	)
 
 	apiService := api.New(api.ApiInput{Client: authedClient})

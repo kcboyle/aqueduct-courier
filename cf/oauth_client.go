@@ -23,22 +23,21 @@ type client interface {
 	Do(request *http.Request) (*http.Response, error)
 }
 
-func NewOAuthClient(target, clientID, clientSecret string, requestTimeout time.Duration, client client) OAuthClient {
+func NewOAuthClient(target, clientID, clientSecret string, client client) OAuthClient {
 	confCC := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 	}
 
-	return funcName(confCC, client, target, requestTimeout)
+	return funcName(confCC, client, target)
 }
 
-func funcName(confCC *clientcredentials.Config, client client, target string, requestTimeout time.Duration) OAuthClient {
+func funcName(confCC *clientcredentials.Config, client client, target string) OAuthClient {
 	return OAuthClient{
 		oauthConfig:   &oauth2.Config{},
 		oauthConfigCC: confCC,
 		context:       context.WithValue(context.TODO(), oauth2.HTTPClient, client),
 		target:        target,
-		timeout:       requestTimeout,
 	}
 }
 

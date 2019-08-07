@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/pivotal-cf/aqueduct-courier/network"
 	"github.com/pivotal-cf/aqueduct-courier/operations"
@@ -71,7 +72,7 @@ func send(c *cobra.Command, _ []string) error {
 		return errors.New(fmt.Sprintf(FileNotFoundErrorFormat, viper.GetString(DataTarFilePathFlag)))
 	}
 
-	client := network.NewClient(false)
+	client := network.NewClient(false, time.Duration(viper.GetInt(DialTimeoutFlag))*time.Second)
 
 	logger.Printf("Sending %s to Pivotal at %s\n", viper.GetString(DataTarFilePathFlag), dataLoaderURL)
 	err = sender.Send(client, tarFile.Name(), dataLoaderURL, viper.GetString(ApiKeyFlag), version)

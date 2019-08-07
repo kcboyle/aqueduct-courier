@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/pivotal-cf/aqueduct-courier/cf"
@@ -54,7 +52,7 @@ var _ = Describe("OAuthClient", func() {
 
 	Describe("Do", func() {
 		It("makes a request with client credentials", func() {
-			client := NewOAuthClient(oauthServer.URL, "client_id", "client_secret", time.Duration(30)*time.Second, http.DefaultClient)
+			client := NewOAuthClient(oauthServer.URL, "client_id", "client_secret", http.DefaultClient)
 
 			req, err := http.NewRequest("GET", accessURL, strings.NewReader("request-body"))
 			Expect(err).NotTo(HaveOccurred())
@@ -85,7 +83,7 @@ var _ = Describe("OAuthClient", func() {
 
 		Context("when the target url is empty", func() {
 			It("returns an error", func() {
-				client := NewOAuthClient("", "", "", time.Duration(30)*time.Second, http.DefaultClient)
+				client := NewOAuthClient("", "", "", http.DefaultClient)
 
 				req, err := http.NewRequest("GET", accessURL, strings.NewReader("request-body"))
 				Expect(err).NotTo(HaveOccurred())

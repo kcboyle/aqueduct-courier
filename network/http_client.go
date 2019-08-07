@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func NewClient(skipTLSVerification bool) *http.Client {
+func NewClient(skipTLSVerification bool, dialTimeout time.Duration) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
@@ -16,7 +16,7 @@ func NewClient(skipTLSVerification bool) *http.Client {
 				MinVersion:         tls.VersionTLS12,
 			},
 			DialContext: (&net.Dialer{
-				Timeout:   5 * time.Second,
+				Timeout:   dialTimeout,
 				KeepAlive: 30 * time.Second,
 			}).DialContext,
 		},
